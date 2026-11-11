@@ -28,13 +28,25 @@ def search(query):
     r = requests.get(GEOCODING, params={"name": query.strip(), "count": 8, "language": "en", "format": "json"},
                      timeout=TIMEOUT)
     r.raise_for_status()
-    out = []
+    out, seen = [], set()
     for p in r.json().get("results") or []:
         detail = ", ".join(x for x in (p.get("admin1"), p.get("country")) if x)
         name = p.get("name", "")
+        if (name, detail) in seen:          # a town and its borough often come back as two identical rows
+            continue
+        seen.add((name, detail))
         out.append({"name": name, "detail": detail, "lat": p["latitude"], "lon": p["longitude"],
                     "label": f"{name}, {detail.split(',')[0]}" if detail else name})
     return out
+
+
+def _fetch(lat, lon):
+    r = requests.get(FORECAST, timeout=TIMEOUT, params={
+        "latitude": lat, "longitude": lon,
+        "current": "temperature_2m,weather_code,is_day", "timezone": "auto"})
+    r.raise_for_status()
+    c = r.json()["current"]
+    return {"tempC": c["temperature_2m"], "code": c["weather_code"], "isDay": c.get("is_day", 1) == 1}
 
 
 def current():
@@ -42,18 +54,13 @@ def current():
     o = settings.options()
     if not settings.weather_enabled(o):
         return None
-    key = (o["WEATHER_LAT"], o["WEATHER_LON"])
+    key = (float(o["WEATHER_LAT"]), float(o["WEATHER_LON"]))
     with _lock:
         now = time.time()
         if _cache["key"] == key and now - _cache["at"] < REFRESH_SECONDS:
             return _cache["data"]
         try:
-            r = requests.get(FORECAST, timeout=TIMEOUT, params={
-                "latitude": key[0], "longitude": key[1],
-                "current": "temperature_2m,weather_code,is_day", "timezone": "auto"})
-            r.raise_for_status()
-            c = r.json()["current"]
-            data = {"tempC": c["temperature_2m"], "code": c["weather_code"], "isDay": c.get("is_day", 1) == 1}
+            data = _fetch(*key)
             _cache.update(key=key, at=now, data=data)
             return data
         except (requests.RequestException, ValueError, KeyError) as e:
@@ -61,3 +68,18 @@ def current():
             if _cache["key"] == key and now - _cache["at"] < MAX_AGE_SECONDS:
                 return _cache["data"]
             return None
+
+
+def at(lat, lon):
+    """Current weather for any town, for the settings page's confirmation. Raises if Open-Meteo can't be reached.
+
+    The reading is cached as if the town were already saved, so once it is, the screens show it without another request.
+    """
+    key = (float(lat), float(lon))
+    with _lock:
+        now = time.time()
+        if _cache["key"] == key and now - _cache["at"] < REFRESH_SECONDS:
+            return _cache["data"]
+        data = _fetch(*key)
+        _cache.update(key=key, at=now, data=data)
+        return data

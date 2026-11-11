@@ -2,6 +2,14 @@
 
 Showcase Web was called **PlexScreen** before it joined the Showcase family. Existing installs keep working: settings, the `/screen/` address and screen keys are unchanged.
 
+## 2.2.1 - Clear confirmation when choosing a weather town
+Matches Showcase for Android TV 0.2.2.
+- **The chosen town is shown in a panel with its current weather** (temperature, conditions and icon), outlined in amber
+  right after you choose it, so it's clear the choice took. Once saved, it reads "Showing the weather for…".
+- After choosing a town, the search box clears and the keyboard focus moves to **Save changes**.
+- **Duplicate search results are merged** (a town and its borough often came back as two identical rows).
+- The reading fetched for the panel is shared with the screens, so they show the weather straight after you save.
+
 ## 2.2 - Title logos, details and night dimming
 - **Title logos:** the film or show's transparent logo artwork from Plex replaces the title text, when Plex has one.
   Falls back to the text otherwise (`TITLE_LOGOS`).

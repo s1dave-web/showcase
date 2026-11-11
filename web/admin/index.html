@@ -7,6 +7,7 @@
     <title>Showcase Web settings</title>
     <link rel="icon" href="../images/favicon.ico">
     <link rel="stylesheet" href="admin.css">
+    <script src="weather-icons.js" defer></script>
     <script src="admin.js" defer></script>
 </head>
 <body>
@@ -210,6 +211,14 @@
                 <fieldset aria-describedby="weather-hint">
                     <legend>Weather</legend>
                     <p id="weather-current" class="weather-current"></p>
+                    <div id="weather-chosen" class="weather-chosen" hidden>
+                        <span class="tick" aria-hidden="true">✓</span>
+                        <div class="text">
+                            <p id="weather-chosen-place"></p>
+                            <p id="weather-chosen-now" class="hint"></p>
+                        </div>
+                        <svg viewBox="0 0 24 24" aria-hidden="true" hidden></svg>
+                    </div>
                     <input type="hidden" id="WEATHER_PLACE" data-setting="WEATHER_PLACE" data-kind="text">
                     <input type="hidden" id="WEATHER_LAT" data-setting="WEATHER_LAT" data-kind="coord">
                     <input type="hidden" id="WEATHER_LON" data-setting="WEATHER_LON" data-kind="coord">

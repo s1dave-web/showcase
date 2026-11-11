@@ -26,6 +26,7 @@ import weather
 
 log = logging.getLogger("showcase")
 ADMIN_DIR = os.path.join(settings.BASE_DIR, "admin")
+STATIC_DIR = os.path.join(settings.BASE_DIR, "static")
 MIN_PASSWORD = 8
 
 admin_bp = Blueprint("admin", __name__)
@@ -142,6 +143,12 @@ def page():
 @admin_bp.route("/<any('admin.js','admin.css'):name>")
 def asset(name):
     return send_from_directory(ADMIN_DIR, name)
+
+
+@admin_bp.route("/weather-icons.js")
+def weather_icons():
+    """Shared with the screensaver; served here too, so it loads before sign-in even when a screen key is set."""
+    return send_from_directory(os.path.join(STATIC_DIR, "js"), "weather-icons.js")
 
 
 # --------------------------------------------------------------------------- account
@@ -270,6 +277,22 @@ def weather_search():
         return jsonify(places=weather.search(q))
     except (requests.RequestException, ValueError, KeyError):
         return jsonify(error="Couldn't reach the weather service - check this server's internet connection"), 502
+
+
+@admin_bp.route("/api/weather/now")
+@require_login
+def weather_now():
+    """The current weather for a town just picked on the settings page (not saved yet)."""
+    try:
+        lat, lon = float(request.args["lat"]), float(request.args["lon"])
+    except (KeyError, ValueError):
+        return jsonify(error="Missing town coordinates"), 400
+    if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+        return jsonify(error="Missing town coordinates"), 400
+    try:
+        return jsonify(weather=weather.at(lat, lon))
+    except (requests.RequestException, ValueError, KeyError):
+        return jsonify(error="Couldn't get the current weather"), 502
 
 
 @admin_bp.route("/api/libraries")

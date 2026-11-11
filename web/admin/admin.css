@@ -136,6 +136,21 @@ details.manual summary { cursor: pointer; padding: .4rem 0; color: var(--muted);
 }
 
 .weather-current { font-weight: 600; margin: .25rem 0 .5rem; }
+.weather-current:empty { display: none; }
+.weather-chosen {
+    display: flex; align-items: center; gap: 1rem; margin: .25rem 0 .75rem; padding: .75rem 1rem;
+    background: var(--panel); border: 2px solid var(--border); border-radius: .5rem;
+}
+.weather-chosen[hidden] { display: none; }
+.weather-chosen.just-set { border-color: var(--accent); }       /* right after choosing a town */
+.weather-chosen .tick { color: var(--accent); font-size: 1.6rem; font-weight: 700; line-height: 1; }
+.weather-chosen .text { flex: 1; min-width: 0; }
+.weather-chosen p { margin: 0; }
+.weather-chosen #weather-chosen-place { font-weight: 600; }
+.weather-chosen svg {
+    width: 2.25rem; height: 2.25rem; flex: none;
+    fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
+}
 #weather-results { margin: .5rem 0; }
 #weather-results .place { text-align: left; display: block; width: 100%; font-weight: 400; }
 #weather-results .place .hint { display: inline; }

@@ -162,6 +162,7 @@
         syncPickers();
         updateOutputs();
         renderLibraries();
+        weatherState.justSet = false;
         showWeatherPlace();
         setDirty(false);
     }
@@ -190,10 +191,52 @@
     }
 
     // ------------------------------------------------------------------ weather town
+    // The chosen town is shown in a panel with its current weather, outlined right after choosing it.
+    const weatherState = { justSet: false, key: "", now: null, failed: false };
+
     function showWeatherPlace() {
         const place = $("WEATHER_PLACE").value;
-        $("weather-current").textContent = place ? `Showing the weather for ${place}.` : "Weather is off. Search for your town to turn it on.";
+        const panel = $("weather-chosen");
+        $("weather-current").textContent = place ? "" : "Weather is off. Search for your town to turn it on.";
         $("weather-off").hidden = !place;
+        panel.hidden = !place;
+        if (!place) return;
+        panel.classList.toggle("just-set", weatherState.justSet);
+        $("weather-chosen-place").textContent = weatherState.justSet
+            ? `Weather set to ${place}. Save changes to apply it.`
+            : `Showing the weather for ${place}.`;
+        const svg = panel.querySelector("svg");
+        const now = weatherState.now;
+        if (now) {
+            const [text, icon] = window.ShowcaseWeather.describe(now.code, now.isDay);
+            const f = $("TEMP_UNIT").value === "f";
+            const t = Math.round(f ? now.tempC * 9 / 5 + 32 : now.tempC);
+            $("weather-chosen-now").textContent = `Right now: ${t}°${f ? "F" : "C"}${text ? "  " + text : ""}`;
+            svg.innerHTML = window.ShowcaseWeather.ICONS[icon];     // fixed icon markup, no user data
+            svg.removeAttribute("hidden");
+        } else {
+            $("weather-chosen-now").textContent = weatherState.failed
+                ? "Couldn't get the current weather just now. The screens will keep trying."
+                : "Getting the current weather…";
+            svg.setAttribute("hidden", "");
+        }
+        loadWeatherNow();
+    }
+
+    async function loadWeatherNow() {
+        const lat = $("WEATHER_LAT").value, lon = $("WEATHER_LON").value;
+        const key = `${lat},${lon}`;
+        if (!$("WEATHER_PLACE").value || lat === "" || lon === "" || key === weatherState.key) return;
+        Object.assign(weatherState, { key, now: null, failed: false });
+        try {
+            const d = await api(`weather/now?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`);
+            if (weatherState.key !== key) return;            // another town was chosen meanwhile
+            weatherState.now = d.weather;
+        } catch (_) {
+            if (weatherState.key !== key) return;
+            weatherState.failed = true;
+        }
+        showWeatherPlace();
     }
 
     function setWeatherPlace(label, lat, lon) {
@@ -201,6 +244,7 @@
         $("WEATHER_LAT").value = lat;
         $("WEATHER_LON").value = lon;
         $("weather-results").replaceChildren();
+        weatherState.justSet = !!label;
         showWeatherPlace();
         setDirty(true);
     }
@@ -221,6 +265,7 @@
                     const b = el("button", { type: "button", className: "secondary place" },
                         el("strong", { textContent: p.name }), " ", el("span", { className: "hint", textContent: p.detail }));
                     b.addEventListener("click", () => {
+                        $("weather-query").value = "";
                         setWeatherPlace(p.label, p.lat, p.lon);
                         say(`Weather set to ${p.label}. Save changes to apply it.`);
                         $("save").focus();
@@ -238,6 +283,7 @@
     $("weather-query").addEventListener("keydown", e => {
         if (e.key === "Enter") { e.preventDefault(); searchWeather(); }
     });
+    $("TEMP_UNIT").addEventListener("change", showWeatherPlace);
     $("weather-off").addEventListener("click", () => {
         setWeatherPlace("", "", "");
         say("Weather turned off. Save changes to apply it.");
