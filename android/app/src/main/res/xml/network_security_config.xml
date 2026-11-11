@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Plex servers on your home network are usually plain http://192.168.x.x:32400, so allow cleartext.
+     plex.tv and *.plex.direct addresses are https as normal. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

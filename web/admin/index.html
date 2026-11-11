@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <title>Showcase Web settings</title>
+    <link rel="icon" href="../images/favicon.ico">
+    <link rel="stylesheet" href="admin.css">
+    <script src="admin.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="topbar">
+    <h1>Showcase Web settings</h1>
+    <button type="button" id="logout" class="secondary" hidden>Sign out</button>
+</header>
+
+<main id="main" tabindex="-1">
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+    <div id="alert" class="alert" role="alert" hidden></div>
+
+    <!-- ============================================================ sign in / first-run -->
+    <section id="auth" class="card narrow" aria-labelledby="auth-title" hidden>
+        <h2 id="auth-title">Sign in</h2>
+        <p id="auth-help" class="hint"></p>
+        <form id="auth-form">
+            <div class="field" id="auth-code-wrap" hidden>
+                <label for="auth-code">Setup code</label>
+                <input id="auth-code" type="text" autocomplete="off" spellcheck="false" autocapitalize="characters" aria-describedby="auth-code-hint">
+                <p id="auth-code-hint" class="hint">Shown in the window where the server is running, e.g. <code>3F9A-0C21</code>.</p>
+            </div>
+            <div class="field">
+                <label for="auth-pw">Password</label>
+                <input id="auth-pw" type="password" autocomplete="current-password" required>
+            </div>
+            <div class="field" id="auth-pw2-wrap" hidden>
+                <label for="auth-pw2">Type it again</label>
+                <input id="auth-pw2" type="password" autocomplete="new-password">
+            </div>
+            <button type="submit" id="auth-submit">Sign in</button>
+        </form>
+    </section>
+
+    <!-- ============================================================ the settings app -->
+    <div id="app" hidden>
+
+        <section class="card" aria-labelledby="h-plex">
+            <h2 id="h-plex">Plex server</h2>
+            <p id="plex-status" class="plex-status">Checking connection…</p>
+            <div class="row">
+                <button type="button" id="plex-signin">Sign in with Plex</button>
+                <button type="button" id="plex-disconnect" class="secondary" hidden>Disconnect</button>
+            </div>
+
+            <div id="plex-wait" class="panel" hidden>
+                <p>Approve <strong>Showcase Web</strong> in the Plex window that opened. This page will continue on its own.</p>
+                <p class="hint">No window? <a id="plex-link" href="#" target="_blank" rel="noopener">Open the Plex sign-in page</a>.</p>
+                <button type="button" id="plex-cancel" class="secondary">Cancel</button>
+            </div>
+
+            <form id="server-pick" class="panel" hidden>
+                <fieldset>
+                    <legend>Signed in as <span id="plex-user"></span>. Which server should the screensaver use?</legend>
+                    <div id="server-list" class="choices"></div>
+                </fieldset>
+                <button type="submit" id="server-use">Use this server</button>
+            </form>
+
+            <details class="manual">
+                <summary>Enter the server address and token yourself</summary>
+                <form id="manual-form">
+                    <div class="field">
+                        <label for="manual-url">Server address</label>
+                        <input id="manual-url" type="url" inputmode="url" placeholder="http://192.168.1.20:32400" required aria-describedby="manual-url-hint">
+                        <p id="manual-url-hint" class="hint">Include http:// or https:// and the port.</p>
+                    </div>
+                    <div class="field">
+                        <label for="manual-token">Plex token</label>
+                        <input id="manual-token" type="password" autocomplete="off" aria-describedby="manual-token-hint">
+                        <p id="manual-token-hint" class="hint">Leave blank to keep the current token.</p>
+                    </div>
+                    <button type="submit">Test and save</button>
+                </form>
+            </details>
+        </section>
+
+        <section class="card" aria-labelledby="h-preview">
+            <div class="row spread">
+                <h2 id="h-preview">Preview</h2>
+                <button type="button" id="preview-reload" class="secondary">Reload preview</button>
+            </div>
+            <div class="preview-frame">
+                <iframe id="preview" title="Live preview of the screensaver"></iframe>
+            </div>
+            <p class="hint">Screens pick up saved changes within about a minute. The preview reloads straight away.</p>
+        </section>
+
+        <form id="settings-form" novalidate>
+            <section class="card" aria-labelledby="h-libraries">
+                <h2 id="h-libraries">Libraries</h2>
+                <fieldset>
+                    <legend>Show artwork from these libraries</legend>
+                    <div id="libraries" class="choices"><p class="hint">Loading…</p></div>
+                </fieldset>
+            </section>
+
+            <section class="card" aria-labelledby="h-slideshow">
+                <h2 id="h-slideshow">Slideshow</h2>
+                <div class="grid">
+                    <div class="field">
+                        <label for="IMAGE_INTERVAL_SECONDS">Seconds per image</label>
+                        <input id="IMAGE_INTERVAL_SECONDS" data-setting="IMAGE_INTERVAL_SECONDS" data-kind="number" type="number" min="3" max="3600" step="1" required>
+                    </div>
+                    <div class="field">
+                        <label for="TRANSITION_SECONDS">Crossfade (seconds)</label>
+                        <input id="TRANSITION_SECONDS" data-setting="TRANSITION_SECONDS" data-kind="number" type="number" min="0" max="10" step="0.1" required aria-describedby="TRANSITION_SECONDS-hint">
+                        <p id="TRANSITION_SECONDS-hint" class="hint">0 switches instantly.</p>
+                    </div>
+                </div>
+
+                <fieldset data-setting="ART_QUALITY" data-kind="radio">
+                    <legend>Image quality</legend>
+                    <div class="choices">
+                        <label class="choice"><input type="radio" name="ART_QUALITY" value="original">
+                            <span><strong>Original</strong> <span class="hint">Full quality as stored in Plex. 4K where Plex has it.</span></span></label>
+                        <label class="choice"><input type="radio" name="ART_QUALITY" value="screen">
+                            <span><strong>Fit to screen</strong> <span class="hint">Plex shrinks images first. Faster on slow Wi-Fi or weak devices.</span></span></label>
+                    </div>
+                </fieldset>
+
+                <fieldset data-setting="ANIMATIONS" data-kind="checkset">
+                    <legend>Motion effects <span class="hint">(one is picked at random per image; untick all for none)</span></legend>
+                    <div class="choices cols">
+                        <label class="choice"><input type="checkbox" value="zoomIn"> Zoom in</label>
+                        <label class="choice"><input type="checkbox" value="zoomOut"> Zoom out</label>
+                        <label class="choice"><input type="checkbox" value="moveLeft"> Pan left</label>
+                        <label class="choice"><input type="checkbox" value="moveRight"> Pan right</label>
+                        <label class="choice"><input type="checkbox" value="moveUp"> Pan up</label>
+                        <label class="choice"><input type="checkbox" value="moveDown"> Pan down</label>
+                        <label class="choice"><input type="checkbox" value="goGray"> Fade to grey</label>
+                        <label class="choice"><input type="checkbox" value="goColor"> Fade to colour</label>
+                    </div>
+                </fieldset>
+            </section>
+
+            <section class="card" aria-labelledby="h-overlay">
+                <h2 id="h-overlay">On-screen text</h2>
+                <div class="grid">
+                    <fieldset>
+                        <legend>Title</legend>
+                        <label class="choice"><input type="checkbox" id="SHOW_TITLE" data-setting="SHOW_TITLE" data-kind="bool"> Show the title</label>
+                        <div class="field">
+                            <label for="TITLE_COLOR">Title colour</label>
+                            <div class="color-pair">
+                                <input type="color" id="TITLE_COLOR-pick" data-pair="TITLE_COLOR" aria-label="Title colour picker">
+                                <input type="text" id="TITLE_COLOR" data-setting="TITLE_COLOR" data-kind="text" required spellcheck="false">
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label for="TITLE_OPACITY">Title opacity <output for="TITLE_OPACITY" id="TITLE_OPACITY-out"></output></label>
+                            <input type="range" id="TITLE_OPACITY" data-setting="TITLE_OPACITY" data-kind="number" min="0" max="1" step="0.05">
+                        </div>
+                        <div class="field">
+                            <label for="TITLE_POSITION">Title position</label>
+                            <select id="TITLE_POSITION" data-setting="TITLE_POSITION" data-kind="text">
+                                <option value="left">Left</option><option value="center">Centre</option><option value="right">Right</option>
+                            </select>
+                        </div>
+                    </fieldset>
+
+                    <fieldset>
+                        <legend>Clock</legend>
+                        <label class="choice"><input type="checkbox" id="SHOW_TIME" data-setting="SHOW_TIME" data-kind="bool"> Show the clock</label>
+                        <label class="choice"><input type="checkbox" id="CLOCK_24H" data-setting="CLOCK_24H" data-kind="bool"> 24-hour time</label>
+                        <div class="field">
+                            <label for="TIME_COLOR">Clock colour</label>
+                            <div class="color-pair">
+                                <input type="color" id="TIME_COLOR-pick" data-pair="TIME_COLOR" aria-label="Clock colour picker">
+                                <input type="text" id="TIME_COLOR" data-setting="TIME_COLOR" data-kind="text" required spellcheck="false">
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label for="TIME_OPACITY">Clock opacity <output for="TIME_OPACITY" id="TIME_OPACITY-out"></output></label>
+                            <input type="range" id="TIME_OPACITY" data-setting="TIME_OPACITY" data-kind="number" min="0" max="1" step="0.05">
+                        </div>
+                        <div class="field">
+                            <label for="TIME_POSITION">Clock position</label>
+                            <select id="TIME_POSITION" data-setting="TIME_POSITION" data-kind="text">
+                                <option value="left">Left</option><option value="center">Centre</option><option value="right">Right</option>
+                            </select>
+                        </div>
+                    </fieldset>
+                </div>
+
+                <fieldset>
+                    <legend>Extras</legend>
+                    <label class="choice"><input type="checkbox" id="SHOW_POSTER" data-setting="SHOW_POSTER" data-kind="bool">
+                        <span>Show the poster in the bottom-left corner <span class="hint">(a left-aligned title overlaps it)</span></span></label>
+                    <label class="choice"><input type="checkbox" id="PIXEL_SHIFT" data-setting="PIXEL_SHIFT" data-kind="bool">
+                        <span>Burn-in protection <span class="hint">(moves the text a few pixels with each image; recommended for OLED)</span></span></label>
+                </fieldset>
+            </section>
+
+            <section class="card" aria-labelledby="h-extra">
+                <h2 id="h-extra">Extra images</h2>
+                <div class="field">
+                    <label for="EXTRA_IMAGES">Your own images</label>
+                    <textarea id="EXTRA_IMAGES" data-setting="EXTRA_IMAGES" data-kind="pairs" rows="3" spellcheck="false" aria-describedby="EXTRA_IMAGES-hint"></textarea>
+                    <p id="EXTRA_IMAGES-hint" class="hint">One per line: <code>Title | file.jpg</code>. Put the files in the <code>static/extraImages</code> folder on the server.</p>
+                </div>
+                <div class="field">
+                    <label for="EXTRA_LINKS">Images from the web</label>
+                    <textarea id="EXTRA_LINKS" data-setting="EXTRA_LINKS" data-kind="pairs" rows="3" spellcheck="false" aria-describedby="EXTRA_LINKS-hint"></textarea>
+                    <p id="EXTRA_LINKS-hint" class="hint">One per line: <code>Title | https://…/image.jpg</code></p>
+                </div>
+                <label class="choice"><input type="checkbox" id="USE_PLEX" data-setting="USE_PLEX" data-kind="bool"> Include Plex artwork <span class="hint">(untick to show only these extra images)</span></label>
+            </section>
+
+            <section class="card" aria-labelledby="h-advanced">
+                <h2 id="h-advanced">Advanced</h2>
+                <div class="grid">
+                    <div class="field">
+                        <label for="REFRESH_MINUTES">Check for new Plex items every (minutes)</label>
+                        <input id="REFRESH_MINUTES" data-setting="REFRESH_MINUTES" data-kind="number" type="number" min="1" max="1440" step="1" required>
+                    </div>
+                    <div class="field">
+                        <label for="ITEM_CACHE_SECONDS">Server keeps the library list for (seconds)</label>
+                        <input id="ITEM_CACHE_SECONDS" data-setting="ITEM_CACHE_SECONDS" data-kind="number" type="number" min="60" max="86400" step="1" required>
+                    </div>
+                </div>
+            </section>
+
+            <div class="savebar">
+                <button type="submit" id="save">Save changes</button>
+                <span id="dirty" class="hint" hidden>Unsaved changes</span>
+            </div>
+        </form>
+
+        <section class="card" aria-labelledby="h-access">
+            <h2 id="h-access">Screen access</h2>
+            <p id="key-status"></p>
+            <div class="field">
+                <label for="screen-url">Address to put on your TV</label>
+                <div class="row">
+                    <input id="screen-url" type="text" readonly>
+                    <button type="button" id="copy-url" class="secondary">Copy</button>
+                </div>
+            </div>
+            <div class="row">
+                <button type="button" id="key-generate" class="secondary">Require a key (new key)</button>
+                <button type="button" id="key-clear" class="secondary">Remove the key</button>
+            </div>
+            <p class="hint">With a key, only screens opened with the address above can show your artwork. Recommended if this server can be reached from the internet. Making a new key means updating the address on every screen.</p>
+        </section>
+
+        <section class="card" aria-labelledby="h-password">
+            <h2 id="h-password">Settings password</h2>
+            <form id="password-form" class="narrow">
+                <input type="text" autocomplete="username" value="admin" hidden>
+                <div class="field">
+                    <label for="pw-current">Current password</label>
+                    <input id="pw-current" type="password" autocomplete="current-password" required>
+                </div>
+                <div class="field">
+                    <label for="pw-new">New password</label>
+                    <input id="pw-new" type="password" autocomplete="new-password" minlength="8" required aria-describedby="pw-new-hint">
+                    <p id="pw-new-hint" class="hint">At least 8 characters. Other signed-in devices will be signed out.</p>
+                </div>
+                <div class="field">
+                    <label for="pw-new2">Type it again</label>
+                    <input id="pw-new2" type="password" autocomplete="new-password" required>
+                </div>
+                <button type="submit" class="secondary">Change password</button>
+            </form>
+        </section>
+    </div>
+
+    <section id="popup-done" class="card narrow" hidden>
+        <h2>Signed in to Plex</h2>
+        <p>You can close this window and go back to the settings page.</p>
+    </section>
+</main>
+</body>
+</html>

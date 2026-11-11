@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A framed picture with hills and a sun: "your artwork on the wall" -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#E5A00D"
+        android:pathData="M30,36h48a4,4 0,0 1,4 4v28a4,4 0,0 1,-4 4h-48a4,4 0,0 1,-4 -4v-28a4,4 0,0 1,4 -4zM31,41v26h46v-26z" />
+    <path android:fillColor="#E5A00D" android:pathData="M33,66l12,-14l8,9l6,-6l16,11z" />
+    <path android:fillColor="#E5A00D" android:pathData="M66,48m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0" />
+</vector>
