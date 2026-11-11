@@ -134,3 +134,8 @@ details.manual summary { cursor: pointer; padding: .4rem 0; color: var(--muted);
 @media (prefers-reduced-motion: reduce) {
     * { scroll-behavior: auto !important; transition: none !important; }
 }
+
+.weather-current { font-weight: 600; margin: .25rem 0 .5rem; }
+#weather-results { margin: .5rem 0; }
+#weather-results .place { text-align: left; display: block; width: 100%; font-weight: 400; }
+#weather-results .place .hint { display: inline; }

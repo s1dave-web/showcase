@@ -2,6 +2,15 @@
 
 Showcase Web was called **PlexScreen** before it joined the Showcase family. Existing installs keep working: settings, the `/screen/` address and screen keys are unchanged.
 
+## 2.1 - The Showcase look
+- **Same design as the Android TV app:** clock, date and weather in one corner block, light typography,
+  soft shading behind the text, a bigger corner poster (16% of the width), and the title and poster fade between images.
+- **Date** under the clock (`SHOW_DATE`), in the order your browser's language uses.
+- **Weather** under the clock: search for your town on the settings page and choose °C or °F. The server
+  fetches it every 30 minutes and shares it with all your screens, so only the town's coordinates are sent
+  to Open-Meteo, never your screens' locations. New settings: `WEATHER_PLACE`, `WEATHER_LAT`, `WEATHER_LON`, `TEMP_UNIT`.
+- Sizes scale with the screen, so it looks the same in a 1080p or 4K browser.
+
 ## 2.0 - What changed from the original PlexScreen
 
 ## New: settings page with "Sign in with Plex"

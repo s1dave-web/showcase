@@ -174,6 +174,7 @@
                         <legend>Clock</legend>
                         <label class="choice"><input type="checkbox" id="SHOW_TIME" data-setting="SHOW_TIME" data-kind="bool"> Show the clock</label>
                         <label class="choice"><input type="checkbox" id="CLOCK_24H" data-setting="CLOCK_24H" data-kind="bool"> 24-hour time</label>
+                        <label class="choice"><input type="checkbox" id="SHOW_DATE" data-setting="SHOW_DATE" data-kind="bool"> Show the date under the clock</label>
                         <div class="field">
                             <label for="TIME_COLOR">Clock colour</label>
                             <div class="color-pair">
@@ -200,6 +201,33 @@
                         <span>Show the poster in the bottom-left corner <span class="hint">(a left-aligned title overlaps it)</span></span></label>
                     <label class="choice"><input type="checkbox" id="PIXEL_SHIFT" data-setting="PIXEL_SHIFT" data-kind="bool">
                         <span>Burn-in protection <span class="hint">(moves the text a few pixels with each image; recommended for OLED)</span></span></label>
+                </fieldset>
+
+                <fieldset aria-describedby="weather-hint">
+                    <legend>Weather</legend>
+                    <p id="weather-current" class="weather-current"></p>
+                    <input type="hidden" id="WEATHER_PLACE" data-setting="WEATHER_PLACE" data-kind="text">
+                    <input type="hidden" id="WEATHER_LAT" data-setting="WEATHER_LAT" data-kind="coord">
+                    <input type="hidden" id="WEATHER_LON" data-setting="WEATHER_LON" data-kind="coord">
+                    <div class="field">
+                        <label for="weather-query">Find your town or city</label>
+                        <div class="row">
+                            <input type="text" id="weather-query" autocomplete="address-level2" spellcheck="false">
+                            <button type="button" id="weather-search" class="secondary">Search</button>
+                        </div>
+                    </div>
+                    <div id="weather-results" class="choices" aria-live="polite"></div>
+                    <div class="grid">
+                        <div class="field">
+                            <label for="TEMP_UNIT">Temperature</label>
+                            <select id="TEMP_UNIT" data-setting="TEMP_UNIT" data-kind="text">
+                                <option value="c">°C</option><option value="f">°F</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="button" id="weather-off" class="secondary">Turn weather off</button>
+                    <p id="weather-hint" class="hint">Shown under the clock. The server looks it up every 30 minutes for all your screens.
+                        Only the town you choose is sent to <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo.com</a>, which provides the weather data.</p>
                 </fieldset>
             </section>
 

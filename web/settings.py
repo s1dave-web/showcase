@@ -293,8 +293,10 @@ class Field:
             return raw.lower() in ("1", "true", "yes", "on")
         if k == "number":
             return float(raw)
-        if k in ("choice", "color"):
+        if k in ("choice", "color", "text"):
             return raw
+        if k == "coord":
+            return float(raw)
         if k == "names":
             return [s.strip() for s in raw.split(",") if s.strip()]
         if k == "animations":
@@ -328,6 +330,17 @@ class Field:
             if not isinstance(v, str) or not COLOR_RE.match(v.strip()):
                 raise ValueError("must be a colour like #ffffff")
             return v.strip()
+        if k == "text":
+            if not isinstance(v, str) or len(v) > 120 or any(c in v for c in "\r\n;|"):
+                raise ValueError("must be a short line of text")
+            return v.strip()
+        if k == "coord":                               # empty = not set
+            if v in ("", None):
+                return ""
+            v = float(v)
+            if not (self.lo <= v <= self.hi):
+                raise ValueError(f"must be between {self.lo:g} and {self.hi:g}")
+            return v
         if k == "names":
             if not isinstance(v, list) or not all(isinstance(s, str) for s in v):
                 raise ValueError("must be a list of names")
@@ -373,6 +386,8 @@ class Field:
             return ",".join(v) if v else "none"
         if k in ("files", "links"):
             return ";".join(f"{t}|{val}" for t, val in v)
+        if k == "coord":
+            return "" if v == "" else f"{v:.5f}"
         return str(v)
 
 
@@ -393,6 +408,11 @@ FIELDS = [
     Field("CLOCK_24H", "bool", True, "24-hour clock"),
     Field("SHOW_POSTER", "bool", True, "Show poster"),
     Field("PIXEL_SHIFT", "bool", True, "Burn-in protection"),
+    Field("SHOW_DATE", "bool", True, "Show date"),
+    Field("WEATHER_PLACE", "text", "", "Weather town"),
+    Field("WEATHER_LAT", "coord", "", "Weather latitude", -90, 90),
+    Field("WEATHER_LON", "coord", "", "Weather longitude", -180, 180),
+    Field("TEMP_UNIT", "choice", "c", "Temperature unit", options=("c", "f")),
     Field("REFRESH_MINUTES", "number", 30, "Library refresh minutes", 1, 1440),
     Field("USE_PLEX", "bool", True, "Use Plex artwork"),
     Field("EXTRA_IMAGES", "files", [], "Extra local images"),
@@ -447,6 +467,14 @@ def screen_config():
         "pixelShift": o["PIXEL_SHIFT"],
         "refreshMinutes": o["REFRESH_MINUTES"],
         "usePlex": o["USE_PLEX"],
+        "showDate": o["SHOW_DATE"],
+        "weatherEnabled": weather_enabled(o),
+        "fahrenheit": o["TEMP_UNIT"] == "f",
         "extraImages": o["EXTRA_IMAGES"],
         "extraLinks": o["EXTRA_LINKS"],
     }
+
+
+def weather_enabled(o=None):
+    o = o or options()
+    return bool(o["WEATHER_PLACE"]) and o["WEATHER_LAT"] != "" and o["WEATHER_LON"] != ""

@@ -1,166 +1,138 @@
-    body, html {
-        background-color: black;
-        height: 100%;
-        margin: 0;
-        overflow: hidden;
-    }
+/* Showcase Web - same layout as the Android TV app. Sizes are in vw/vh so it looks the same at 1080p and 4K. */
+:root {
+    --mx: 6vw;                      /* side margin */
+    --my: 6vh;                      /* top/bottom margin */
+    --poster: 16vw;                 /* corner poster width */
+    --font: Roboto, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    --fade: 1500ms;                 /* crossfade length, set from settings */
+}
 
-    #info {
-        z-index: 50;
-        position: absolute;
-        margin: 0;
-        padding: 0.5em 0.8em;
-        background: rgba(0, 0, 0, 0.8);
-        color: white;
-        font-family: sans-serif;
-        white-space: pre-line;
-    }
+html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+    color: #fff;
+    font-family: var(--font);
+    cursor: none;
+}
+[hidden] { display: none !important; }
 
-    #info[hidden], .Logo[hidden] {
-        display: none;
-    }
+/* ------------------------------------------------------------------ slides */
+.slide {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity var(--fade) ease;
+}
+.slide.visible { opacity: 1; }
+.art {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    animation-timing-function: linear;
+    animation-fill-mode: both;
+}
 
-    .slide {
-        width: 100%;
-        height: 100%;
-        position: absolute;
-        top: 0;
-        left: 0;
-        overflow: hidden;
-        opacity: 0;
-        transition: opacity ease;
-        transition-duration: 1.5s;
-    }
+/* ------------------------------------------------------------------ shading */
+.shade { position: absolute; left: 0; right: 0; z-index: 3; pointer-events: none; }
+.shade.top { top: 0; height: 32%; background: linear-gradient(to bottom, rgba(0, 0, 0, .5), rgba(0, 0, 0, 0)); }
+.shade.bottom { bottom: 0; height: 42%; background: linear-gradient(to top, rgba(0, 0, 0, .6), rgba(0, 0, 0, 0)); }
+body.noTop .shade.top, body.noBottom .shade.bottom { display: none; }
 
-    .slide.visible {
-        opacity: 1;
-    }
+/* ------------------------------------------------------------------ overlay */
+#overlay { position: absolute; inset: 0; z-index: 4; pointer-events: none; transition: transform 1s ease; }
+.clock, .detail, .title { text-shadow: 0 .1vw .7vw rgba(0, 0, 0, .8); }
 
-    .overlay {
-        position: absolute;
-        inset: 0;
-        transition: transform 1s ease;
-    }
+.info {
+    position: absolute;
+    top: var(--my);
+    left: var(--mx);
+    right: var(--mx);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: right;
+}
+.info.left { align-items: flex-start; text-align: left; }
+.info.center { align-items: center; text-align: center; }
 
-    body.hiddenTitle .Title,
-    body.hiddenTime .Time,
-    body.hiddenLogo .Logo {
-        display: none;
-    }
+.clock { font-size: 4.2vw; font-weight: 300; line-height: 1; letter-spacing: -.01em; }
+.detail {
+    margin-top: .65vw;
+    font-size: 1.35vw;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    opacity: .92;
+}
+.weather { display: flex; align-items: center; gap: .8vw; }
+.weather svg {
+    width: 1.9vw;
+    height: 1.9vw;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    filter: drop-shadow(0 .1vw .4vw rgba(0, 0, 0, .7));
+}
 
-    @keyframes zoomOut {
-        from {
-            transform: scale(1.1);
-        }
-        to {
-            transform: scale(1);
-        }
-    }
+.poster {
+    position: absolute;
+    left: var(--mx);
+    bottom: var(--my);
+    width: var(--poster);
+    height: auto;
+    box-shadow: 0 .6vw 1.8vw rgba(0, 0, 0, .6);
+    transition: opacity calc(var(--fade) / 2) ease;
+}
+.title {
+    position: absolute;
+    bottom: var(--my);
+    right: var(--mx);
+    left: calc(var(--mx) + var(--poster) + 4vw);       /* never under the poster */
+    font-size: 2.3vw;
+    font-weight: 300;
+    line-height: 1.15;
+    text-align: right;
+    transition: opacity calc(var(--fade) / 2) ease;
+}
+body.noPoster .title { left: var(--mx); }
+.title.left { text-align: left; }
+.title.center { text-align: center; }
+.fading { opacity: 0 !important; }
 
-    @keyframes zoomIn {
-        from {
-            transform: scale(1);
-        }
-        to {
-            transform: scale(1.1);
-        }
-    }
+body.hiddenTitle .title,
+body.hiddenTime .clock,
+body.hiddenDate #date,
+body.hiddenLogo .poster { display: none; }
 
-    @keyframes moveRight {
-        from {
-            transform: scale(1.1) translateX(3%);
-        }
-        to {
-            transform: scale(1.1) translateX(-3%);
-        }
-    }
+#message {
+    position: absolute;
+    top: var(--my);
+    left: var(--mx);
+    z-index: 10;
+    max-width: 50vw;
+    margin: 0;
+    padding: .6em 1em;
+    background: rgba(0, 0, 0, .8);
+    font-size: max(14px, 1.2vw);
+    white-space: pre-line;
+}
 
-    @keyframes moveLeft {
-        from {
-            transform: scale(1.1) translateX(-3%);
-        }
-        to {
-            transform: scale(1.1) translateX(3%);
-        }
-    }
+/* ------------------------------------------------------------------ motion effects (pans at 110% so edges never show) */
+@keyframes zoomIn    { from { transform: scale(1); }   to { transform: scale(1.1); } }
+@keyframes zoomOut   { from { transform: scale(1.1); } to { transform: scale(1); } }
+@keyframes moveRight { from { transform: scale(1.1) translateX(3%); }  to { transform: scale(1.1) translateX(-3%); } }
+@keyframes moveLeft  { from { transform: scale(1.1) translateX(-3%); } to { transform: scale(1.1) translateX(3%); } }
+@keyframes moveUp    { from { transform: scale(1.1) translateY(4%); }  to { transform: scale(1.1) translateY(-4%); } }
+@keyframes moveDown  { from { transform: scale(1.1) translateY(-4%); } to { transform: scale(1.1) translateY(4%); } }
+@keyframes goGray    { from { filter: grayscale(0%); }   to { filter: grayscale(100%); } }
+@keyframes goColor   { from { filter: grayscale(100%); } to { filter: grayscale(0%); } }
 
-    @keyframes moveUp {
-        from {
-            transform: scale(1.1) translateY(4%);
-        }
-        to {
-            transform: scale(1.1) translateY(-4%);
-        }
-    }
-
-    @keyframes moveDown {
-        from {
-            transform: scale(1.1) translateY(-4%);
-        }
-        to {
-            transform: scale(1.1) translateY(4%);
-        }
-    }
-
-    @keyframes goGray {
-        from {
-            filter: grayscale(0%);
-        }
-        to {
-            filter: grayscale(100%);
-        }
-    }
-
-    @keyframes goColor {
-        from {
-            filter: grayscale(100%);
-        }
-        to {
-            filter: grayscale(0%);
-        }
-    }
-
-.Poster {
-        width: 100%;
-        height: 100%;
-        position: absolute;
-        top: 0;
-        left: 0;
-        object-fit: cover;
-        animation-timing-function: linear;
-    }
-.Logo {
-        width: 15%;
-        height: auto;
-        position: absolute;
-        bottom: 6%;
-		left: 6%;
-        object-fit: scale-down;
-        animation-timing-function: linear;
-	    box-shadow: 0em 0em black, 0em 0 .4em black;
-
-    }
-.Time {
-        font-size: 42px;
-        position: absolute;
-        color: white;
-        left: 6%;
-        right: 6%;
-        text-shadow: 0px 2px 3px rgba(0, 0, 0, 0.5), 0px 4px 13px rgba(0, 0, 0, 0.2), 0px 9px 23px rgba(0, 0, 0, 0.2);
-        top: 6%;
-        font-family: sans-serif;
-        margin: 0;
-        display: block;
-    }
-.Title {
-        font-size: 25px;
-        position: absolute;
-        color: white;
-        left: 6%;
-        right: 6%;
-        text-shadow: 0px 2px 3px rgba(0, 0, 0, 0.5), 0px 4px 13px rgba(0, 0, 0, 0.2), 0px 9px 23px rgba(0, 0, 0, 0.2);
-        bottom: 6%;
-        font-family: sans-serif;
-        margin: 0;
-        display: block;
-    }
+@media (prefers-reduced-motion: reduce) {
+    .art { animation: none !important; }
+}

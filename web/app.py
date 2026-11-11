@@ -26,6 +26,7 @@ from itsdangerous import URLSafeTimedSerializer
 import admin
 import plexapi
 import settings
+import weather
 
 STATIC_DIR = os.path.join(settings.BASE_DIR, "static")
 MAX_IMAGE_DIM = 3840
@@ -134,6 +135,13 @@ def get_items():
 
 
 # --------------------------------------------------------------------------- routes
+@screen_bp.route("/api/weather")
+def api_weather():
+    resp = jsonify(weather=weather.current())
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
+
+
 @screen_bp.route("/api/config")
 def api_config():
     resp = jsonify(settings.screen_config())

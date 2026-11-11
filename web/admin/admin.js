@@ -152,6 +152,7 @@
             switch (node.dataset.kind) {
                 case "bool": node.checked = !!v; break;
                 case "number":
+                case "coord":
                 case "text": node.value = v; break;
                 case "radio": node.querySelectorAll("input").forEach(i => { i.checked = i.value === v; }); break;
                 case "checkset": node.querySelectorAll("input").forEach(i => { i.checked = v.includes(i.value); }); break;
@@ -161,6 +162,7 @@
         syncPickers();
         updateOutputs();
         renderLibraries();
+        showWeatherPlace();
         setDirty(false);
     }
 
@@ -172,6 +174,7 @@
                 case "bool": out[name] = node.checked; break;
                 case "number": out[name] = Number(node.value); break;
                 case "text": out[name] = node.value.trim(); break;
+                case "coord": out[name] = node.value === "" ? "" : Number(node.value); break;
                 case "radio": out[name] = (node.querySelector("input:checked") || {}).value; break;
                 case "checkset": out[name] = [...node.querySelectorAll("input:checked")].map(i => i.value); break;
                 case "pairs":
@@ -185,6 +188,60 @@
         out.LIBRARIES_TO_EXCLUDE = excludedFromForm();
         return out;
     }
+
+    // ------------------------------------------------------------------ weather town
+    function showWeatherPlace() {
+        const place = $("WEATHER_PLACE").value;
+        $("weather-current").textContent = place ? `Showing the weather for ${place}.` : "Weather is off. Search for your town to turn it on.";
+        $("weather-off").hidden = !place;
+    }
+
+    function setWeatherPlace(label, lat, lon) {
+        $("WEATHER_PLACE").value = label;
+        $("WEATHER_LAT").value = lat;
+        $("WEATHER_LON").value = lon;
+        $("weather-results").replaceChildren();
+        showWeatherPlace();
+        setDirty(true);
+    }
+
+    async function searchWeather() {
+        const q = $("weather-query").value.trim();
+        if (!q) return $("weather-query").focus();
+        const box = $("weather-results");
+        await withBusy($("weather-search"), async () => {
+            try {
+                const places = (await api("weather/search?q=" + encodeURIComponent(q))).places;
+                box.replaceChildren();
+                if (!places.length) {
+                    box.append(el("p", { className: "hint", textContent: `No places called "${q}". Try another spelling or a nearby city.` }));
+                    return;
+                }
+                places.forEach(p => {
+                    const b = el("button", { type: "button", className: "secondary place" },
+                        el("strong", { textContent: p.name }), " ", el("span", { className: "hint", textContent: p.detail }));
+                    b.addEventListener("click", () => {
+                        setWeatherPlace(p.label, p.lat, p.lon);
+                        say(`Weather set to ${p.label}. Save changes to apply it.`);
+                        $("save").focus();
+                    });
+                    box.append(b);
+                });
+                box.querySelector("button").focus();
+            } catch (err) {
+                showAlert(err.message);
+            }
+        });
+    }
+
+    $("weather-search").addEventListener("click", searchWeather);
+    $("weather-query").addEventListener("keydown", e => {
+        if (e.key === "Enter") { e.preventDefault(); searchWeather(); }
+    });
+    $("weather-off").addEventListener("click", () => {
+        setWeatherPlace("", "", "");
+        say("Weather turned off. Save changes to apply it.");
+    });
 
     async function loadSettings() {
         const d = await api("settings");

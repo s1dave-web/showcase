@@ -22,6 +22,7 @@ from flask import Blueprint, abort, jsonify, request, send_from_directory, sessi
 
 import plexapi
 import settings
+import weather
 
 log = logging.getLogger("showcase")
 ADMIN_DIR = os.path.join(settings.BASE_DIR, "admin")
@@ -257,6 +258,18 @@ def screen_key():
         return jsonify(error="Unknown action"), 400
     settings.save({"SCREEN_ACCESS_KEY": key})
     return jsonify(screenKeySet=bool(key), screenUrl=_screen_url(key))
+
+
+@admin_bp.route("/api/weather/search")
+@require_login
+def weather_search():
+    q = request.args.get("q", "").strip()
+    if not q or len(q) > 100:
+        return jsonify(error="Type a town or city"), 400
+    try:
+        return jsonify(places=weather.search(q))
+    except (requests.RequestException, ValueError, KeyError):
+        return jsonify(error="Couldn't reach the weather service - check this server's internet connection"), 502
 
 
 @admin_bp.route("/api/libraries")

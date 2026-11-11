@@ -8,23 +8,30 @@
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-<p id="info"></p>
-<div id="one" class="slide">
-    <img src="images/background.jpg" alt="" class="Poster">
-    <div class="overlay">
-        <p class="Title"></p>
-        <img src="images/logo.png" alt="" class="Logo">
-        <p class="Time"></p>
-    </div>
+<!-- The artwork: two slides that crossfade -->
+<div id="slides">
+    <div class="slide visible"><img class="art" src="images/background.jpg" alt=""></div>
+    <div class="slide"><img class="art" alt=""></div>
 </div>
-<div id="two" class="slide">
-    <img src="images/background.jpg" alt="" class="Poster">
-    <div class="overlay">
-        <p class="Title"></p>
-        <img src="images/logo.png" alt="" class="Logo">
-        <p class="Time"></p>
+
+<!-- Soft dark fades so the text stays readable on bright artwork (not shifted by burn-in protection) -->
+<div class="shade top"></div>
+<div class="shade bottom"></div>
+
+<!-- Text and poster -->
+<div id="overlay">
+    <div id="info" class="info">
+        <div id="clock" class="clock"></div>
+        <div id="date" class="detail"></div>
+        <div id="weather" class="detail weather" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true"></svg><span></span>
+        </div>
     </div>
+    <img id="poster" class="poster" alt="" hidden>
+    <div id="title" class="title"></div>
 </div>
+
+<p id="message" hidden></p>
 <script src="js/showcase.js"></script>
 </body>
 </html>

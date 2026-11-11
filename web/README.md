@@ -1,5 +1,7 @@
 # Showcase Web
 
+<p align="center"><img src="../docs/screenshot-web.jpg" alt="Showcase Web in a browser: artwork with clock, date, weather, title and poster" width="800"><br><sub>Shown with demo artwork.</sub></p>
+
 A fullscreen slideshow of the artwork from your Plex movie and TV libraries, with title, clock and slow pan/zoom effects.
 It comes with a settings page where you sign in with Plex, pick your server and libraries, and adjust everything with a live preview.
 
@@ -56,7 +58,7 @@ Under **Screen access**, copy the address and set it as the page in your screens
 | Preview | A live view of the screensaver |
 | Libraries | Choose which movie/TV libraries to show (music and photo libraries are never used) |
 | Slideshow | Seconds per image, crossfade, image quality (original/4K or fit to screen), motion effects |
-| On-screen text | Title and clock: show/hide, colour, opacity, position; 12/24-hour; corner poster; burn-in protection |
+| On-screen text | Title and clock: show/hide, colour, opacity, position; 12/24-hour; date; **weather** (search for your town, °C or °F); corner poster; burn-in protection |
 | Extra images | Mix in your own images (from `static/extraImages/`) or images from the web |
 | Advanced | How often to check for new items; how long the server caches the library list |
 | Screen access | Copy the TV address; require a key (or a new one) so only your screens can view it |
