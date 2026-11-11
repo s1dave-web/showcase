@@ -134,7 +134,11 @@ private fun Page(
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(10.dp),
             contentPadding = PaddingValues(bottom = 24.dp),
-        ) { content(first) }
+        ) {
+            // Read the settings version here, so the rows are rebuilt (with their new values) the moment a setting changes.
+            vm.settingsVersion
+            content(first)
+        }
     }
 }
 
