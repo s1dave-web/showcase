@@ -134,7 +134,52 @@ def get_items():
         return _cache["items"]
 
 
+# --------------------------------------------------------------------------- per-film details (fetched as each slide is prepared)
+_info = {}                       # rating key -> details; small, bounded
+_info_lock = threading.Lock()
+INFO_MAX = 2000
+
+
+def _rating(value):
+    # Plex stores some ratings with a country prefix, e.g. "gb/12A".
+    return (value or "").rsplit("/", 1)[-1].strip()
+
+
+def item_info(rating_key):
+    with _info_lock:
+        hit = _info.get(rating_key)
+    if hit:
+        return hit
+    m = (plexapi.pms_json(f"/library/metadata/{rating_key}").get("Metadata") or [{}])[0]
+    logo = next((img.get("url") for img in m.get("Image") or []
+                 if img.get("type") == "clearLogo" and str(img.get("url", "")).startswith("/")), None)
+    info = {
+        "year": m.get("year") or None,
+        "genres": [g.get("tag") for g in (m.get("Genre") or [])[:2] if g.get("tag")],
+        "rating": _rating(m.get("contentRating")),
+        "logo": logo,
+    }
+    with _info_lock:
+        if len(_info) >= INFO_MAX:
+            _info.clear()
+        _info[rating_key] = info
+    return info
+
+
 # --------------------------------------------------------------------------- routes
+@screen_bp.route("/api/item/<int:rating_key>/info")
+def api_info(rating_key):
+    try:
+        info = item_info(rating_key)
+    except plexapi.NotConfigured:
+        abort(503)
+    except (requests.RequestException, ValueError, KeyError, IndexError) as e:
+        log.warning("Details for %s failed: %s", rating_key, e)
+        abort(502)
+    resp = jsonify(year=info["year"], genres=info["genres"], rating=info["rating"], logo=bool(info["logo"]))
+    resp.headers["Cache-Control"] = "private, max-age=3600"
+    return resp
+
 @screen_bp.route("/api/weather")
 def api_weather():
     resp = jsonify(weather=weather.current())
@@ -178,10 +223,14 @@ def _clamp(value, default):
 
 @screen_bp.route("/api/item/<int:rating_key>/<media_type>")
 def api_image(rating_key, media_type):
-    if media_type not in ("art", "thumb"):
+    if media_type not in ("art", "thumb", "logo"):
         abort(404)
-    source = f"/library/metadata/{rating_key}/{media_type}"
     try:
+        source = f"/library/metadata/{rating_key}/{media_type}"
+        if media_type == "logo":
+            source = item_info(rating_key)["logo"]
+            if not source:
+                abort(404)
         r = None
         if request.args.get("w"):
             # Resize requested: Plex scales the image down to fit (never up).
@@ -192,7 +241,7 @@ def api_image(rating_key, media_type):
             r = plexapi.pms_image(source)                     # original artwork, untouched
     except plexapi.NotConfigured:
         abort(503)
-    except requests.RequestException as e:
+    except (requests.RequestException, ValueError, KeyError, IndexError) as e:
         log.warning("Image %s/%s failed: %s", rating_key, media_type, e)
         abort(502)
     if r.status_code != 200:

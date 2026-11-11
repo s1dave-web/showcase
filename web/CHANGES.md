@@ -2,6 +2,14 @@
 
 Showcase Web was called **PlexScreen** before it joined the Showcase family. Existing installs keep working: settings, the `/screen/` address and screen keys are unchanged.
 
+## 2.2 - Title logos, details and night dimming
+- **Title logos:** the film or show's transparent logo artwork from Plex replaces the title text, when Plex has one.
+  Falls back to the text otherwise (`TITLE_LOGOS`).
+- **Detail line** under the title: year, up to two genres and the age rating, e.g. "2021 · Thriller · 15" (`SHOW_DETAILS`).
+- **Night dimming:** darkens the screen between two times, eased in and out over a minute
+  (`DIM_START`, `DIM_END`, `DIM_LEVEL`). Uses each screen's own clock; leave the times empty to never dim.
+- Details are fetched per image as it's prepared (one small request) and cached on the server.
+
 ## 2.1 - The Showcase look
 - **Same design as the Android TV app:** clock, date and weather in one corner block, light typography,
   soft shading behind the text, a bigger corner poster (16% of the width), and the title and poster fade between images.

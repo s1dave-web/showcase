@@ -24,6 +24,7 @@ import android.widget.TextView
 import app.showcase.screensaver.showcase
 import app.showcase.screensaver.data.NotConfiguredException
 import app.showcase.screensaver.plex.Item
+import app.showcase.screensaver.plex.ItemInfo
 import app.showcase.screensaver.weather.Conditions
 import coil.request.ImageRequest
 import coil.request.SuccessResult
@@ -36,6 +37,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
+import java.util.Calendar
 import kotlin.math.max
 import kotlin.math.min
 import java.util.Locale
@@ -64,7 +67,7 @@ class SlideshowView(context: Context) : FrameLayout(context) {
         }
     }
 
-    private class Prepared(val item: Item, val poster: Drawable?)
+    private class Prepared(val item: Item, val poster: Drawable?, val logo: Drawable?, val detail: String)
 
     private val slides = arrayOf(Slide(context), Slide(context))
     private var active = 0
@@ -91,7 +94,18 @@ class SlideshowView(context: Context) : FrameLayout(context) {
     private val weatherIcon = ImageView(context)
     private val weatherText = TextView(context)
 
+    // Bottom right: the film's logo (or its title as text) with year · genre · rating underneath.
+    private val caption = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.END }
+    private val logo = ImageView(context)
     private val title = TextView(context)
+    private val details = TextView(context)
+    private val infoCache = object : LinkedHashMap<String, ItemInfo>(64, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, ItemInfo>?) = size > 300
+    }
+
+    // Night dimming: a black layer over everything.
+    private val dim = View(context).apply { setBackgroundColor(Color.BLACK); alpha = 0f }
+    private var dimJob: Job? = null
     private val poster = ImageView(context)
     private val message = TextView(context)
     private var weatherJob: Job? = null
@@ -120,6 +134,21 @@ class SlideshowView(context: Context) : FrameLayout(context) {
         title.style(22f, light)
         title.maxLines = 2
         title.gravity = Gravity.END
+        details.style(13f, regular, caps = true, alpha = 0.92f)
+        details.gravity = Gravity.END
+        details.visibility = View.GONE
+        logo.apply {
+            scaleType = ImageView.ScaleType.FIT_END
+            adjustViewBounds = true
+            visibility = View.GONE
+        }
+        fun captionLp(top: Int = 0) = LinearLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
+            gravity = Gravity.END
+            topMargin = top
+        }
+        caption.addView(logo, captionLp())
+        caption.addView(title, captionLp())
+        caption.addView(details, captionLp(dp(8)))
 
         weatherIcon.alpha = 0.92f
         weatherRow.addView(weatherIcon, LinearLayout.LayoutParams(dp(18), dp(18)).apply { marginEnd = dp(8) })
@@ -148,13 +177,14 @@ class SlideshowView(context: Context) : FrameLayout(context) {
             visibility = View.GONE
         }
         overlay.addView(infoBlock, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, Gravity.TOP or Gravity.END))
-        overlay.addView(title, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, Gravity.BOTTOM or Gravity.END))
+        overlay.addView(caption, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, Gravity.BOTTOM or Gravity.END))
         overlay.addView(poster, LayoutParams(dp(160), LayoutParams.WRAP_CONTENT, Gravity.BOTTOM or Gravity.START))
         overlay.addView(message, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, Gravity.TOP or Gravity.START))
         shade.addView(topShade, LayoutParams(LayoutParams.MATCH_PARENT, 0, Gravity.TOP))
         shade.addView(bottomShade, LayoutParams(LayoutParams.MATCH_PARENT, 0, Gravity.BOTTOM))
         addView(shade, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
         addView(overlay, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+        addView(dim, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
     }
 
     // ------------------------------------------------------------------ lifecycle
@@ -163,12 +193,14 @@ class SlideshowView(context: Context) : FrameLayout(context) {
         applyPrefs()
         loop = scope.launch { slideshowLoop() }
         weatherJob = scope.launch { weatherLoop() }
+        dimJob = scope.launch { dimLoop() }
     }
 
     fun stop() {
         scope.coroutineContext.cancelChildren()
         loop = null
         weatherJob = null
+        dimJob = null
         slides.forEach { stopEffect(it) }
     }
 
@@ -182,9 +214,11 @@ class SlideshowView(context: Context) : FrameLayout(context) {
         // 6% margins, like the web version; poster ~16% of the width.
         val mx = (w * 0.06f).toInt()
         val my = (h * 0.06f).toInt()
-        listOf(infoBlock, title, poster, message).forEach { (it.layoutParams as LayoutParams).setMargins(mx, my, mx, my) }
+        listOf(infoBlock, caption, poster, message).forEach { (it.layoutParams as LayoutParams).setMargins(mx, my, mx, my) }
         (poster.layoutParams as LayoutParams).width = (w * POSTER_WIDTH).toInt()
-        (title.layoutParams as LayoutParams).marginStart = mx + (w * (POSTER_WIDTH + 0.04f)).toInt()   // never under the poster
+        (caption.layoutParams as LayoutParams).marginStart = mx + (w * (POSTER_WIDTH + 0.04f)).toInt()   // never under the poster
+        logo.maxWidth = (w * LOGO_WIDTH).toInt()
+        logo.maxHeight = (h * LOGO_HEIGHT).toInt()
         topShade.layoutParams.height = (h * 0.32f).toInt()
         bottomShade.layoutParams.height = (h * 0.42f).toInt()
         post { overlay.requestLayout(); shade.requestLayout() }
@@ -201,7 +235,7 @@ class SlideshowView(context: Context) : FrameLayout(context) {
         clock.visibility = if (prefs.showClock) View.VISIBLE else View.GONE
         date.visibility = if (prefs.showDate) View.VISIBLE else View.GONE
         if (!prefs.weatherEnabled) weatherRow.visibility = View.GONE
-        title.visibility = if (prefs.showTitle) View.VISIBLE else View.GONE
+        caption.visibility = if (prefs.showTitle) View.VISIBLE else View.GONE
         if (!prefs.showPoster) poster.visibility = View.GONE
         topShade.visibility = if (prefs.showClock || prefs.showDate || prefs.weatherEnabled) View.VISIBLE else View.GONE
         bottomShade.visibility = if (prefs.showTitle || prefs.showPoster) View.VISIBLE else View.GONE
@@ -234,6 +268,24 @@ class SlideshowView(context: Context) : FrameLayout(context) {
         weatherIcon.setImageResource(c.icon)
         weatherText.text = listOf(c.temperature(prefs.fahrenheit), c.description).filter { it.isNotEmpty() }.joinToString("  ")
         weatherRow.visibility = View.VISIBLE
+    }
+
+    // ------------------------------------------------------------------ night dimming
+    /** Checks the time every 30 s and eases the dimming layer in or out over a minute. */
+    private suspend fun dimLoop() {
+        var current = -1f
+        while (true) {
+            val now = Calendar.getInstance()
+            val night = prefs.isNight(now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE))
+            val target = if (night) prefs.dimLevel.coerceIn(10, 95) / 100f else 0f
+            if (target != current) {
+                dim.bringToFront()
+                if (current < 0f) dim.alpha = target                 // starting at night: already dim, no fade
+                else dim.animate().alpha(target).setDuration(60_000L).setInterpolator(LinearInterpolator()).start()
+                current = target
+            }
+            delay(30_000L)
+        }
     }
 
     // ------------------------------------------------------------------ main loop
@@ -290,12 +342,12 @@ class SlideshowView(context: Context) : FrameLayout(context) {
     }
 
     // ------------------------------------------------------------------ images
-    private suspend fun load(url: String, w: Int, h: Int): Drawable? {
+    private suspend fun load(url: String, w: Int, h: Int, scale: Scale = Scale.FILL): Drawable? {
         val request = ImageRequest.Builder(context)
             .data(url)
             .headers(app.plex.headers(prefs.token, accept = "image/*"))
             .size(w, h)
-            .scale(Scale.FILL)
+            .scale(scale)
             .build()
         return (app.imageLoader.execute(request) as? SuccessResult)?.drawable
     }
@@ -312,9 +364,25 @@ class SlideshowView(context: Context) : FrameLayout(context) {
             val thumb = if (prefs.showPoster && item.hasThumb) {
                 load(app.plex.thumbUrl(prefs.serverUrl, item.ratingKey), (w * POSTER_WIDTH).toInt().coerceAtLeast(64), h / 2)
             } else null
+            var logoImage: Drawable? = null
+            var detail = ""
+            if (prefs.showTitle && (prefs.titleLogos || prefs.showDetails)) {
+                // Never hold the slideshow up for long: no details is fine.
+                withTimeoutOrNull(5_000L) {
+                    val info = infoCache[item.ratingKey] ?: runCatching {
+                        app.plex.info(prefs.serverUrl, prefs.token, item.ratingKey)
+                    }.getOrNull()?.also { infoCache[item.ratingKey] = it }
+                    detail = info?.detail.orEmpty()
+                    val path = info?.logoPath
+                    if (prefs.titleLogos && path != null) {
+                        logoImage = load(app.plex.logoUrl(prefs.serverUrl, path),
+                            (w * LOGO_WIDTH).toInt(), (h * LOGO_HEIGHT).toInt(), Scale.FIT)
+                    }
+                }
+            }
             stopEffect(slide)
             slide.image.setImageDrawable(art)
-            return Prepared(item, thumb)
+            return Prepared(item, thumb, logoImage, detail)
         }
         return null
     }
@@ -327,6 +395,7 @@ class SlideshowView(context: Context) : FrameLayout(context) {
         next.bringToFront()
         shade.bringToFront()
         overlay.bringToFront()
+        dim.bringToFront()                                 // night dimming stays on top
         next.animate().alpha(1f).setDuration(prefs.transitionMs.toLong()).withEndAction {
             prev.alpha = 0f
             stopEffect(prev)
@@ -339,6 +408,12 @@ class SlideshowView(context: Context) : FrameLayout(context) {
     private fun updateOverlay(p: Prepared) {
         val swap = {
             title.text = p.item.title
+            logo.setImageDrawable(p.logo)
+            logo.contentDescription = p.item.title
+            logo.visibility = if (p.logo != null) View.VISIBLE else View.GONE
+            title.visibility = if (p.logo != null) View.GONE else View.VISIBLE   // the logo replaces the title text
+            details.text = if (prefs.showDetails) p.detail else ""
+            details.visibility = if (details.text.isNullOrEmpty()) View.GONE else View.VISIBLE
             if (prefs.showPoster && p.poster != null) {
                 poster.setImageDrawable(p.poster)
                 poster.visibility = View.VISIBLE
@@ -351,9 +426,9 @@ class SlideshowView(context: Context) : FrameLayout(context) {
             }
         }
         val fade = (prefs.transitionMs / 2L).coerceAtLeast(1L)
-        title.animate().alpha(0f).setDuration(fade).withEndAction {
+        caption.animate().alpha(0f).setDuration(fade).withEndAction {
             swap()
-            title.animate().alpha(1f).setDuration(fade).start()
+            caption.animate().alpha(1f).setDuration(fade).start()
             poster.alpha = 0f
             poster.animate().alpha(1f).setDuration(fade).start()
         }.start()
@@ -416,6 +491,8 @@ class SlideshowView(context: Context) : FrameLayout(context) {
 
     private companion object {
         const val POSTER_WIDTH = 0.16f                 // share of the screen width
+        const val LOGO_WIDTH = 0.30f                   // title logos fit inside 30% x 15% of the screen
+        const val LOGO_HEIGHT = 0.15f
         const val WEATHER_REFRESH = 30 * 60_000L
         const val WEATHER_MAX_AGE = 3 * 60 * 60_000L    // older than this isn't worth showing
     }

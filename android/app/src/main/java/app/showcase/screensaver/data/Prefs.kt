@@ -61,6 +61,21 @@ class Prefs(context: Context) {
     var showPoster by bool("show_poster", true)
     var pixelShift by bool("pixel_shift", true)
     var showDate by bool("show_date", true)
+    var titleLogos by bool("title_logos", true)          // the film's clearLogo instead of title text
+    var showDetails by bool("show_details", true)        // "2021 · Action · 12A"
+
+    // ------------------------------------------------------------------ night dimming (minutes after midnight, -1 = off)
+    var dimStart by int("dim_start", -1)
+    var dimEnd by int("dim_end", -1)
+    var dimLevel by int("dim_level", 60)                 // percent darker
+    val dimEnabled: Boolean get() = dimStart >= 0 && dimEnd >= 0 && dimStart != dimEnd
+
+    /** Is [minuteOfDay] inside the dimming window? Handles windows that cross midnight (22:00-07:00). */
+    fun isNight(minuteOfDay: Int): Boolean = when {
+        !dimEnabled -> false
+        dimStart < dimEnd -> minuteOfDay in dimStart until dimEnd
+        else -> minuteOfDay >= dimStart || minuteOfDay < dimEnd
+    }
 
     // ------------------------------------------------------------------ weather (off until a city is chosen)
     var weatherPlace by string("weather_place")          // "Manchester, England" - empty = weather off

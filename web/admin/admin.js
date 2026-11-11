@@ -285,7 +285,7 @@
 
     // Opacity sliders show their value.
     function updateOutputs() {
-        for (const id of ["TITLE_OPACITY", "TIME_OPACITY"]) {
+        for (const id of ["TITLE_OPACITY", "TIME_OPACITY", "DIM_LEVEL"]) {
             $(id + "-out").textContent = Math.round(Number($(id).value) * 100) + "%";
             $(id).setAttribute("aria-valuetext", $(id + "-out").textContent);
         }

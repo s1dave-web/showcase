@@ -58,7 +58,8 @@ Under **Screen access**, copy the address and set it as the page in your screens
 | Preview | A live view of the screensaver |
 | Libraries | Choose which movie/TV libraries to show (music and photo libraries are never used) |
 | Slideshow | Seconds per image, crossfade, image quality (original/4K or fit to screen), motion effects |
-| On-screen text | Title and clock: show/hide, colour, opacity, position; 12/24-hour; date; **weather** (search for your town, °C or °F); corner poster; burn-in protection |
+| On-screen text | Title and clock: show/hide, colour, opacity, position; 12/24-hour; date; **weather** (search for your town, °C or °F); corner poster; burn-in protection; **title logos**; **year, genre and rating** |
+| Night dimming | Darken the screen between two times (each screen's own clock), and choose how much |
 | Extra images | Mix in your own images (from `static/extraImages/`) or images from the web |
 | Advanced | How often to check for new items; how long the server caches the library list |
 | Screen access | Copy the TV address; require a key (or a new one) so only your screens can view it |

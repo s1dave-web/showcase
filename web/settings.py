@@ -261,6 +261,7 @@ def password_fingerprint():
 # --------------------------------------------------------------------------- user-facing options
 COLOR_RE = re.compile(r"^(#[0-9a-fA-F]{3,8}|[a-zA-Z]{3,20}|rgba?\(\s*[\d.\s,%]+\))$")
 FILE_RE = re.compile(r"^[\w\-. ()]+$")
+TIME_RE = re.compile(r"^([01]?\d|2[0-3]):([0-5]\d)$")
 
 
 class Field:
@@ -293,7 +294,7 @@ class Field:
             return raw.lower() in ("1", "true", "yes", "on")
         if k == "number":
             return float(raw)
-        if k in ("choice", "color", "text"):
+        if k in ("choice", "color", "text", "time"):
             return raw
         if k == "coord":
             return float(raw)
@@ -334,6 +335,13 @@ class Field:
             if not isinstance(v, str) or len(v) > 120 or any(c in v for c in "\r\n;|"):
                 raise ValueError("must be a short line of text")
             return v.strip()
+        if k == "time":                                # "HH:MM", empty = not set
+            if v in ("", None):
+                return ""
+            m = TIME_RE.match(str(v).strip())
+            if not m:
+                raise ValueError("must be a time like 22:30")
+            return f"{int(m[1]):02d}:{m[2]}"
         if k == "coord":                               # empty = not set
             if v in ("", None):
                 return ""
@@ -409,6 +417,11 @@ FIELDS = [
     Field("SHOW_POSTER", "bool", True, "Show poster"),
     Field("PIXEL_SHIFT", "bool", True, "Burn-in protection"),
     Field("SHOW_DATE", "bool", True, "Show date"),
+    Field("TITLE_LOGOS", "bool", True, "Title logos"),
+    Field("SHOW_DETAILS", "bool", True, "Year, genre and rating"),
+    Field("DIM_START", "time", "", "Dim from"),
+    Field("DIM_END", "time", "", "Dim until"),
+    Field("DIM_LEVEL", "number", 0.6, "Dimming amount", 0.1, 0.95),
     Field("WEATHER_PLACE", "text", "", "Weather town"),
     Field("WEATHER_LAT", "coord", "", "Weather latitude", -90, 90),
     Field("WEATHER_LON", "coord", "", "Weather longitude", -180, 180),
@@ -468,6 +481,11 @@ def screen_config():
         "refreshMinutes": o["REFRESH_MINUTES"],
         "usePlex": o["USE_PLEX"],
         "showDate": o["SHOW_DATE"],
+        "titleLogos": o["TITLE_LOGOS"],
+        "showDetails": o["SHOW_DETAILS"],
+        "dimStart": o["DIM_START"],
+        "dimEnd": o["DIM_END"],
+        "dimLevel": o["DIM_LEVEL"],
         "weatherEnabled": weather_enabled(o),
         "fahrenheit": o["TEMP_UNIT"] == "f",
         "extraImages": o["EXTRA_IMAGES"],

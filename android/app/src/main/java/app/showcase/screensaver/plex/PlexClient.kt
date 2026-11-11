@@ -49,6 +49,12 @@ data class Library(val key: String, val title: String, val type: String) {
 
 data class Item(val ratingKey: String, val title: String, val hasThumb: Boolean)
 
+data class ItemInfo(val year: Int?, val genres: List<String>, val rating: String, val logoPath: String?) {
+    /** "2021  ·  Action / Thriller  ·  12A" */
+    val detail: String get() = listOfNotNull(year?.toString(), genres.joinToString(" / ").ifEmpty { null }, rating.ifEmpty { null })
+        .joinToString("  ·  ")
+}
+
 /**
  * Talks to plex.tv (sign-in, server discovery) and to your Plex Media Server.
  * A port of the web version's plexapi.py - same flow, same address-picking rules.
@@ -216,6 +222,30 @@ class PlexClient(private val clientId: String, private val http: OkHttpClient) {
         if (out.isEmpty() && lastError != null) throw lastError
         return out
     }
+
+    /** Year, genres, rating and the clearLogo path for one item (one small request per slide). */
+    suspend fun info(base: String, token: String, ratingKey: String): ItemInfo {
+        val md = container(base, token, "/library/metadata/$ratingKey").optJSONArray("Metadata")
+        val m = md?.optJSONObject(0) ?: return ItemInfo(null, emptyList(), "", null)
+        val genres = m.optJSONArray("Genre")?.let { g -> (0 until g.length()).mapNotNull { g.optJSONObject(it)?.optString("tag")?.ifEmpty { null } } }
+            ?: emptyList()
+        var logo: String? = null
+        m.optJSONArray("Image")?.let { imgs ->
+            for (i in 0 until imgs.length()) {
+                val img = imgs.optJSONObject(i) ?: continue
+                val url = img.optString("url")
+                if (img.optString("type") == "clearLogo" && url.startsWith("/")) { logo = url; break }
+            }
+        }
+        return ItemInfo(
+            year = m.optInt("year").takeIf { it > 0 },
+            genres = genres.take(2),
+            rating = m.optString("contentRating").substringAfterLast('/').trim(),   // "gb/12A" -> "12A"
+            logoPath = logo,
+        )
+    }
+
+    fun logoUrl(base: String, path: String): String = base.trimEnd('/') + path
 
     /** Background art: the original, or (quality "screen") resized by Plex to fit [w]x[h]. */
     fun artUrl(base: String, ratingKey: String, quality: String, w: Int, h: Int): String =

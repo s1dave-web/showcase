@@ -151,6 +151,10 @@
                     <fieldset>
                         <legend>Title</legend>
                         <label class="choice"><input type="checkbox" id="SHOW_TITLE" data-setting="SHOW_TITLE" data-kind="bool"> Show the title</label>
+                        <label class="choice"><input type="checkbox" id="TITLE_LOGOS" data-setting="TITLE_LOGOS" data-kind="bool">
+                            <span>Use the film's logo when Plex has one</span></label>
+                        <label class="choice"><input type="checkbox" id="SHOW_DETAILS" data-setting="SHOW_DETAILS" data-kind="bool">
+                            <span>Show year, genre and rating</span></label>
                         <div class="field">
                             <label for="TITLE_COLOR">Title colour</label>
                             <div class="color-pair">
@@ -229,6 +233,26 @@
                     <p id="weather-hint" class="hint">Shown under the clock. The server looks it up every 30 minutes for all your screens.
                         Only the town you choose is sent to <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo.com</a>, which provides the weather data.</p>
                 </fieldset>
+            </section>
+
+            <section class="card" aria-labelledby="h-dim">
+                <h2 id="h-dim">Night dimming</h2>
+                <div class="grid">
+                    <div class="field">
+                        <label for="DIM_START">Dim from</label>
+                        <input type="time" id="DIM_START" data-setting="DIM_START" data-kind="text">
+                    </div>
+                    <div class="field">
+                        <label for="DIM_END">Until</label>
+                        <input type="time" id="DIM_END" data-setting="DIM_END" data-kind="text">
+                    </div>
+                    <div class="field">
+                        <label for="DIM_LEVEL">How much darker <output for="DIM_LEVEL" id="DIM_LEVEL-out"></output></label>
+                        <input type="range" id="DIM_LEVEL" data-setting="DIM_LEVEL" data-kind="number" min="0.1" max="0.95" step="0.05">
+                    </div>
+                </div>
+                <p class="hint">Darkens the screen between these times, using each screen's own clock (for example 22:00 until 07:00).
+                    Leave the times empty to never dim.</p>
             </section>
 
             <section class="card" aria-labelledby="h-extra">

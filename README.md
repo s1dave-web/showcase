@@ -31,6 +31,9 @@ Both use the same "Sign in with Plex" flow and the same look, and neither needs 
 - **Sign in with Plex:** enter a short code at plex.tv/link, then pick your server. Showcase tests every address the server has and uses the best one: your local network first, the internet second, Plex Relay only as a last resort
 - **Slideshow that feels like a cinema lobby:** slow pan and zoom, smooth crossfades, every title shown once before any repeats
 - **Clock, date and weather:** in a clean, readable corner block; weather is optional and only needs your town name
+- **Title logos:** the film's own logo artwork from Plex instead of plain text, when it has one
+- **Detail line:** year, genre and age rating under the title, e.g. "2021 · Thriller · 15"
+- **Night dimming:** darkens the screen between times you choose, for bedroom TVs
 - **Title and poster:** shown for each film or show, each can be turned off
 - **Choose your libraries:** leave out any you don't want (music and photo libraries are skipped automatically)
 - **Burn-in protection for OLED TVs:** the text moves a few pixels with each image

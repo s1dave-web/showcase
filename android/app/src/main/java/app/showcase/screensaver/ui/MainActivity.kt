@@ -296,6 +296,11 @@ private fun LibrariesScreen(vm: SetupViewModel) {
 private val INTERVALS = listOf(5, 8, 10, 15, 20, 30, 45, 60, 120)
 private val TRANSITIONS = listOf(0, 500, 1000, 1500, 2000, 3000)
 private val REFRESH = listOf(15, 30, 60, 180, 720)
+/** Night dimming windows, as minutes after midnight. (-1, -1) = off. */
+private val DIM_WINDOWS = listOf(-1 to -1, 21 * 60 to 6 * 60, 22 * 60 to 7 * 60, 23 * 60 to 7 * 60, 0 to 7 * 60)
+private val DIM_LEVELS = listOf(30, 50, 60, 70, 85)
+
+private fun hhmm(minutes: Int) = "%02d:%02d".format(minutes / 60, minutes % 60)
 private val MOTION_PRESETS = linkedMapOf(
     "All effects" to Prefs.ALL_ANIMATIONS.toSet(),
     "Zoom only" to Prefs.ZOOM.toSet(),
@@ -344,6 +349,17 @@ private fun DisplayScreen(vm: SetupViewModel) {
             }
         }
         item { OptionRow("Title", value = onOff(p.showTitle)) { vm.update { p.showTitle = !p.showTitle } } }
+        item {
+            OptionRow("Title logos", value = onOff(p.titleLogos),
+                detail = "Show the film's logo instead of its name, when Plex has one") {
+                vm.update { p.titleLogos = !p.titleLogos }
+            }
+        }
+        item {
+            OptionRow("Year, genre and rating", value = onOff(p.showDetails), detail = "A small line under the title") {
+                vm.update { p.showDetails = !p.showDetails }
+            }
+        }
         item { OptionRow("Clock", value = onOff(p.showClock)) { vm.update { p.showClock = !p.showClock } } }
         item {
             OptionRow("Clock format", value = if (p.clock24h) "24-hour" else "12-hour") {
@@ -362,6 +378,21 @@ private fun DisplayScreen(vm: SetupViewModel) {
             OptionRow("Burn-in protection", value = onOff(p.pixelShift),
                 detail = "Moves the text a few pixels with each image. Recommended for OLED TVs.") {
                 vm.update { p.pixelShift = !p.pixelShift }
+            }
+        }
+        item {
+            OptionRow("Night dimming", value = if (p.dimEnabled) "${hhmm(p.dimStart)} – ${hhmm(p.dimEnd)}" else "Off",
+                detail = "Darkens the screen at night, for bedrooms") {
+                vm.update {
+                    val (start, end) = cycle(DIM_WINDOWS, p.dimStart to p.dimEnd)
+                    p.dimStart = start
+                    p.dimEnd = end
+                }
+            }
+        }
+        if (p.dimEnabled) item {
+            OptionRow("Dimming amount", value = "${p.dimLevel}% darker") {
+                vm.update { p.dimLevel = cycle(DIM_LEVELS, p.dimLevel) }
             }
         }
         item {

@@ -17,6 +17,11 @@ const config = {
     timePosition: "right",
     clock24h: true,
     showDate: true,
+    titleLogos: true,
+    showDetails: true,
+    dimStart: "",
+    dimEnd: "",
+    dimLevel: 0.6,
     weatherEnabled: false,
     fahrenheit: false,
     showLogo: true,
@@ -32,6 +37,7 @@ const config = {
     const slides = [...document.querySelectorAll(".slide")];
     const overlay = $("overlay"), info = $("info"), clock = $("clock"), date = $("date");
     const weatherRow = $("weather"), title = $("title"), poster = $("poster"), message = $("message");
+    const caption = $("caption"), logo = $("logo"), details = $("details"), dim = $("dim");
 
     let active = 0;                 // index of the visible slide
     let items = [];                 // everything we can show
@@ -54,9 +60,9 @@ const config = {
         info.className = "info " + config.timePosition;
         info.style.color = config.timeColor;
         info.style.opacity = config.timeOpacity;
-        title.className = "title " + config.titlePosition;
-        title.style.color = config.titleColor;
-        title.style.opacity = config.titleOpacity;
+        caption.className = "caption " + config.titlePosition;
+        caption.style.color = config.titleColor;
+        caption.style.opacity = config.titleOpacity;
         if (!config.pixelShift) overlay.style.transform = "";
     }
 
@@ -70,6 +76,7 @@ const config = {
         }
         applyStyles();
         renderClock();
+        renderDim();
         renderWeather();
     }
 
@@ -113,6 +120,8 @@ const config = {
                 title: it.title,
                 art: `api/item/${it.key}/art${size}`,
                 thumb: it.hasThumb ? `api/item/${it.key}/thumb?w=640&h=960` : null,
+                info: `api/item/${it.key}/info`,
+                logo: `api/item/${it.key}/logo`,
             }));
         }
         const all = plexItems.concat(extraItems());
@@ -169,14 +178,34 @@ const config = {
                 await preload(item.art);
                 let thumbOk = false;
                 if (item.thumb && config.showLogo) thumbOk = await preload(item.thumb).then(() => true, () => false);
+                const meta = await loadInfo(item);
                 img.style.animationName = "none";
                 img.src = item.art;
-                return { item, thumbOk };
+                return { item, thumbOk, ...meta };
             } catch (e) {
                 console.warn(e.message);
             }
         }
         return null;
+    }
+
+    // Year, genres and rating, plus the film's title logo if Plex has one. Never holds up the slideshow for long.
+    async function loadInfo(item) {
+        const out = { detail: "", logoOk: false };
+        if (!item.info || !(config.titleLogos || config.showDetails)) return out;
+        try {
+            const ctrl = new AbortController();
+            const timer = setTimeout(() => ctrl.abort(), 4000);
+            const r = await fetch(item.info, { signal: ctrl.signal });
+            clearTimeout(timer);
+            if (!r.ok) return out;
+            const d = await r.json();
+            out.detail = [d.year, (d.genres || []).join(" / "), d.rating].filter(Boolean).join("  ·  ");
+            if (config.titleLogos && d.logo) {
+                out.logoOk = await Promise.race([preload(item.logo).then(() => true, () => false), sleep(4000).then(() => false)]);
+            }
+        } catch (e) { /* no details this time */ }
+        return out;
     }
 
     // Fade the prepared slide in on top of the current one (no dip to black), then swap title and poster.
@@ -193,10 +222,14 @@ const config = {
         setTimeout(() => prev.classList.remove("visible"), config.transitionDuration + 50);
         active = 1 - active;
 
-        title.classList.add("fading");
+        caption.classList.add("fading");
         poster.classList.add("fading");
         setTimeout(() => {
             title.textContent = p.item.title || "";
+            title.hidden = !!p.logoOk;                      // the logo replaces the title text
+            logo.hidden = !p.logoOk;
+            if (p.logoOk) { logo.src = p.item.logo; logo.alt = p.item.title || ""; }
+            details.textContent = config.showDetails ? p.detail : "";
             poster.hidden = !p.thumbOk;
             if (p.thumbOk) poster.src = p.item.thumb;
             document.body.classList.toggle("noPoster", !config.showLogo || poster.hidden);
@@ -204,7 +237,7 @@ const config = {
                 const dx = Math.round(Math.random() * 16 - 8), dy = Math.round(Math.random() * 16 - 8);
                 overlay.style.transform = `translate(${dx}px, ${dy}px)`;
             }
-            title.classList.remove("fading");
+            caption.classList.remove("fading");
             poster.classList.remove("fading");
         }, Math.max(1, config.transitionDuration / 2));
     }
@@ -250,8 +283,26 @@ const config = {
         return now;
     }
 
+    // ------------------------------------------------------------------ night dimming
+    function minutes(hhmm) {
+        const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm || "");
+        return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+    }
+
+    function isNight(now) {
+        const start = minutes(config.dimStart), end = minutes(config.dimEnd);
+        if (start === null || end === null || start === end) return false;
+        const t = now.getHours() * 60 + now.getMinutes();
+        return start < end ? (t >= start && t < end) : (t >= start || t < end);   // e.g. 22:00-07:00 crosses midnight
+    }
+
+    function renderDim(now) {
+        dim.style.opacity = isNight(now || new Date()) ? config.dimLevel : 0;
+    }
+
     function tickClock() {
         const now = renderClock();
+        renderDim(now);
         setTimeout(tickClock, 60000 - (now.getSeconds() * 1000 + now.getMilliseconds()) + 50);   // align to the minute
     }
 
