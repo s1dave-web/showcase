@@ -87,7 +87,7 @@ class WeatherClient(private val http: OkHttpClient) {
                 lat = r.getDouble("latitude"),
                 lon = r.getDouble("longitude"),
             )
-        }
+        }.distinctBy { it.name to it.detail }      // a town and its borough often come back as two identical rows
     }
 
     suspend fun current(lat: String, lon: String): Conditions {

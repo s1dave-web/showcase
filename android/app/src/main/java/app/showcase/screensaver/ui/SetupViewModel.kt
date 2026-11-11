@@ -12,6 +12,7 @@ import app.showcase.screensaver.plex.Kind
 import app.showcase.screensaver.plex.Library
 import app.showcase.screensaver.plex.PlexException
 import app.showcase.screensaver.plex.ServerResource
+import app.showcase.screensaver.weather.Conditions
 import app.showcase.screensaver.weather.Place
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -48,6 +49,12 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
     var settingsVersion by mutableIntStateOf(0)
         private set
 
+    /** Counts towns chosen on this visit to the Weather page (0 = none yet), and the latest reading for it. */
+    var weatherJustSet by mutableIntStateOf(0)
+        private set
+    var weatherNow by mutableStateOf<Conditions?>(null)
+        private set
+
     private var accountToken: String? = null
     private var signInJob: Job? = null
 
@@ -57,7 +64,11 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
         when (to) {
             Screen.Home -> checkConnection()
             Screen.Libraries -> loadLibraries()
-            Screen.Weather -> weatherResults = null
+            Screen.Weather -> {
+                weatherResults = null
+                weatherJustSet = 0
+                weatherNow = Conditions.decode(prefs.weatherCache)
+            }
             else -> Unit
         }
     }
@@ -208,11 +219,15 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
     fun chooseWeather(place: Place) {
         prefs.setWeatherPlace(place.label, place.lat, place.lon)
         weatherResults = null
+        weatherNow = null
+        weatherJustSet++                       // the screen shows a confirmation and moves to Done
         settingsVersion++
         // Fetch a first reading now, so the screen saver has weather to show straight away.
         viewModelScope.launch {
             try {
-                prefs.weatherCache = app.weather.current(prefs.weatherLat, prefs.weatherLon).encode()
+                val now = app.weather.current(prefs.weatherLat, prefs.weatherLon)
+                prefs.weatherCache = now.encode()
+                weatherNow = now
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -224,6 +239,8 @@ class SetupViewModel(application: Application) : AndroidViewModel(application) {
     fun weatherOff() {
         prefs.clearWeather()
         weatherResults = null
+        weatherNow = null
+        weatherJustSet = 0
         settingsVersion++
     }
 

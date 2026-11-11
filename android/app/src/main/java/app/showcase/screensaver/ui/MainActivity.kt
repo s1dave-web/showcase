@@ -9,6 +9,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
+import androidx.compose.ui.res.painterResource
+import app.showcase.screensaver.weather.Conditions
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -118,6 +123,7 @@ private fun Page(
     title: String,
     subtitle: String? = null,
     vm: SetupViewModel,
+    pinned: (@Composable () -> Unit)? = null,    // shown above the list, never scrolled away
     content: LazyListScope.(first: FocusRequester) -> Unit,
 ) {
     val first = remember { FocusRequester() }
@@ -131,6 +137,10 @@ private fun Page(
         vm.busy?.let { Text(it, color = Amber, fontSize = 18.sp, modifier = Modifier.padding(top = 12.dp)) }
         vm.error?.let { Text(it, color = ErrorText, fontSize = 17.sp, modifier = Modifier.padding(top = 12.dp)) }
         Spacer(Modifier.height(20.dp))
+        if (pinned != null) {
+            pinned()
+            Spacer(Modifier.height(10.dp))
+        }
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(10.dp),
             contentPadding = PaddingValues(bottom = 24.dp),
@@ -176,6 +186,32 @@ private fun OptionRow(
             }
         }
         if (value != null) Text(value, color = fg, fontSize = 18.sp, modifier = Modifier.padding(start = 16.dp))
+    }
+}
+
+/** The town the weather is for, with its current weather. Outlined in amber right after choosing it. */
+@Composable
+private fun WeatherChosen(place: String, justSet: Boolean, now: Conditions?, fahrenheit: Boolean) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Card)
+            .then(if (justSet) Modifier.border(2.dp, Amber, RoundedCornerShape(12.dp)) else Modifier)
+            .padding(horizontal = 24.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("✓", color = Amber, fontSize = 30.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end = 20.dp))
+        Column(Modifier.weight(1f)) {
+            Text(if (justSet) "Weather set to $place" else "Showing the weather for $place",
+                color = TextMain, fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+            Text(if (now != null) "Right now: ${now.temperature(fahrenheit)}  ${now.description}" else "Getting the current weather…",
+                color = TextMuted, fontSize = 15.sp)
+        }
+        if (now != null) {
+            Icon(painterResource(now.icon), contentDescription = null, tint = TextMain,
+                modifier = Modifier.padding(start = 16.dp).size(40.dp))
+        }
     }
 }
 
@@ -417,6 +453,15 @@ private fun WeatherScreen(vm: SetupViewModel) {
     val focusManager = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
     val firstResult = remember { FocusRequester() }
+    val done = remember { FocusRequester() }
+    // A town was just chosen: clear the search and put the remote on Done, next to the confirmation.
+    LaunchedEffect(vm.weatherJustSet) {
+        if (vm.weatherJustSet > 0) {
+            query = ""
+            delay(100)
+            runCatching { done.requestFocus() }
+        }
+    }
     // When results arrive, close the keyboard and put the remote on the first one.
     LaunchedEffect(vm.weatherResults) {
         if (!vm.weatherResults.isNullOrEmpty()) {
@@ -425,8 +470,11 @@ private fun WeatherScreen(vm: SetupViewModel) {
             runCatching { firstResult.requestFocus() }
         }
     }
-    val subtitle = if (p.weatherEnabled) "Showing the weather for ${p.weatherPlace}." else "Choose a town or city to show its weather."
-    Page("Weather", subtitle, vm) { first ->
+    val subtitle = if (p.weatherEnabled) "Shown under the clock. Search again to change the town." else "Choose a town or city to show its weather."
+    val chosen: (@Composable () -> Unit)? = if (p.weatherEnabled) {
+        { WeatherChosen(p.weatherPlace, vm.weatherJustSet > 0, vm.weatherNow, p.fahrenheit) }
+    } else null
+    Page("Weather", subtitle, vm, pinned = chosen) { first ->
         item {
             OutlinedTextField(
                 value = query,
@@ -466,7 +514,7 @@ private fun WeatherScreen(vm: SetupViewModel) {
             OptionRow("Temperature", value = if (p.fahrenheit) "°F" else "°C") { vm.update { p.fahrenheit = !p.fahrenheit } }
         }
         if (p.weatherEnabled) item { OptionRow("Turn weather off") { vm.weatherOff() } }
-        item { OptionRow("Done") { vm.back() } }
+        item { OptionRow("Done", focus = done) { vm.back() } }
         note("Weather data by Open-Meteo.com. Only the town you choose is sent, never your location.", size = 15)
     }
 }
