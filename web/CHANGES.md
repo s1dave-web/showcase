@@ -9,6 +9,11 @@ Matches Showcase for Android TV 0.2.2.
 - After choosing a town, the search box clears and the keyboard focus moves to **Save changes**.
 - **Duplicate search results are merged** (a town and its borough often came back as two identical rows).
 - The reading fetched for the panel is shared with the screens, so they show the weather straight after you save.
+- **Version number** on the settings page (next to the heading) and in the server log at startup.
+- **Screens update themselves:** when the server is updated, open screens notice within about a minute and reload,
+  so nobody has to refresh the TV. This starts working from 2.2.1 on: refresh screens once more after installing it.
+- **No more stale copies after an update:** the page's scripts and styles are stamped with the version, so browsers,
+  TV apps and reverse proxies can't keep serving an old copy.
 
 ## 2.2 - Title logos, details and night dimming
 - **Title logos:** the film or show's transparent logo artwork from Plex replaces the title text, when Plex has one.

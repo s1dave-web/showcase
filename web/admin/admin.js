@@ -616,6 +616,7 @@
     (async () => {
         try {
             const s = await api("state");
+            if (s.version) $("version").textContent = "v" + s.version;
             if (s.loggedIn) await showApp(); else showAuth(s.setupNeeded);
         } catch (err) {
             showAlert(err.message);

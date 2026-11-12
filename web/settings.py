@@ -26,6 +26,7 @@ from urllib.parse import urlparse
 
 from dotenv import dotenv_values
 
+VERSION = "2.2.1"                  # shown on the settings page; screens reload themselves when it changes
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ENV_PATH = os.path.join(BASE_DIR, ".env")
 EXAMPLE_PATH = os.path.join(BASE_DIR, ".env.example")
@@ -459,10 +460,18 @@ def save_options(submitted):
     return errors
 
 
+def page_html(path):
+    """A page with its scripts and styles stamped with the version (`?v=dev` -> `?v=2.2.1`), so after an
+    update no browser, TV app or proxy can keep serving an old copy of them."""
+    with open(path, encoding="utf-8") as f:
+        return f.read().replace("?v=dev", "?v=" + VERSION)
+
+
 def screen_config():
     """The display settings in the shape the screensaver page expects."""
     o = options()
     return {
+        "version": VERSION,
         "imageInterval": o["IMAGE_INTERVAL_SECONDS"] * 1000,
         "transitionDuration": o["TRANSITION_SECONDS"] * 1000,
         "artQuality": o["ART_QUALITY"],

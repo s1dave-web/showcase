@@ -137,7 +137,7 @@ def _start_session():
 # --------------------------------------------------------------------------- page
 @admin_bp.route("/")
 def page():
-    return send_from_directory(ADMIN_DIR, "index.html")
+    return settings.page_html(os.path.join(ADMIN_DIR, "index.html"))
 
 
 @admin_bp.route("/<any('admin.js','admin.css'):name>")
@@ -157,7 +157,7 @@ def state():
     if "csrf" not in session:
         session["csrf"] = secrets.token_urlsafe(32)
     return jsonify(setupNeeded=not settings.get("ADMIN_PASSWORD_HASH"), loggedIn=logged_in(),
-                   csrf=session["csrf"], lan=is_lan())
+                   csrf=session["csrf"], lan=is_lan(), version=settings.VERSION)
 
 
 def setup_code():

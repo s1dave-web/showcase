@@ -44,6 +44,7 @@ const config = {
     let bag = [];                   // shuffle bag: every item is shown once before any repeats
     let started = false;
     let weather = null;
+    let bootVersion = null;         // the server version this page was loaded from
 
     // ------------------------------------------------------------------ settings
     function applyStyles() {
@@ -70,7 +71,13 @@ const config = {
     async function loadConfig() {
         try {
             const r = await fetch("api/config", { cache: "no-store" });
-            if (r.ok) Object.assign(config, await r.json());
+            if (r.ok) {
+                const fresh = await r.json();
+                // The server was updated since this page loaded: reload to run the new version.
+                if (fresh.version && bootVersion && fresh.version !== bootVersion) { location.reload(); return; }
+                bootVersion = bootVersion || fresh.version;
+                Object.assign(config, fresh);
+            }
         } catch (e) {
             console.warn("Could not load settings, using current ones", e);
         }

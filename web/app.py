@@ -260,6 +260,10 @@ def serve_static(path):
         abort(404)
     if not os.path.isfile(os.path.join(STATIC_DIR, path)):
         path = "index.html"
+    if path == "index.html":
+        resp = make_response(settings.page_html(os.path.join(STATIC_DIR, "index.html")))
+        resp.headers["Cache-Control"] = "no-cache"
+        return resp
     return send_from_directory(STATIC_DIR, path)       # safe against ../ traversal
 
 
@@ -267,6 +271,7 @@ app.register_blueprint(admin.admin_bp, url_prefix="/screen/admin")
 app.register_blueprint(screen_bp, url_prefix="/screen")
 
 # Logged at import, so it also shows up when run by gunicorn (systemd: journalctl -u <service>).
+log.info("Showcase Web %s", settings.VERSION)
 if not settings.get("ADMIN_PASSWORD_HASH") and "--set-password" not in sys.argv:
     log.info("FIRST RUN: open /screen/admin/ and enter setup code  %s  to create your password "
              "(or run: python3 app.py --set-password)", admin.setup_code())
