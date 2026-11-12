@@ -18,7 +18,14 @@ settings page       holds the Plex token
 ### 1. Install
 You need Python 3.10 or newer on any machine that can reach your Plex server. The Plex machine itself is fine.
 
-Clone or download this repo, open a terminal in the `web` folder, and run:
+Get the code one of two ways. Either is fine; they just end up in different folders:
+
+| | How | The app folder (where `app.py` is) | To update |
+|---|---|---|---|
+| **Release zip** | Download `Showcase-Web-<version>.zip` from [Releases](https://github.com/s1dave-web/showcase/releases) and unzip it, e.g. into `/opt` | `/opt/showcase-web` | Stop the server, unzip the new version over it (your `.env` is kept), start it again |
+| **git clone** | `git clone https://github.com/s1dave-web/showcase.git /opt/showcase` | `/opt/showcase/web` (the repo also holds the Android app) | `git -C /opt/showcase pull`, then restart the server |
+
+Open a terminal in **the app folder** and run:
 ```
 pip install -r requirements.txt
 python app.py
@@ -89,8 +96,9 @@ Values in `.env` take priority over environment variables with the same name.
 ---
 
 ## Start automatically (optional)
-- **Windows:** Task Scheduler → Create Task → Trigger *At startup*. Action: program `python` (or `venv\Scripts\python.exe`), arguments `app.py`, "Start in" = the `web` folder.
-- **Linux (systemd):** create `/etc/systemd/system/showcase.service`:
+- **Windows:** Task Scheduler → Create Task → Trigger *At startup*. Action: program `python` (or `venv\Scripts\python.exe`), arguments `app.py`, "Start in" = the app folder.
+- **Linux (systemd):** create `/etc/systemd/system/showcase.service`. Set `WorkingDirectory` to **your app folder**:
+  `/opt/showcase-web` if you used the release zip (as below), or `/opt/showcase/web` if you used git clone.
   ```
   [Unit]
   Description=Showcase Web
@@ -104,7 +112,7 @@ Values in `.env` take priority over environment variables with the same name.
   [Install]
   WantedBy=multi-user.target
   ```
-  then `sudo systemctl enable --now showcase`. Logs, including the first-run setup code, are in `journalctl -u showcase`.
+  then `sudo systemctl enable --now showcase`. If you used a virtual environment, point `ExecStart` at its Python, e.g. `/opt/showcase-web/venv/bin/python app.py`. Logs, including the first-run setup code, are in `journalctl -u showcase`.
 
   **gunicorn works too**, e.g. `ExecStart=/usr/bin/gunicorn -w 4 -b 0.0.0.0:5005 app:app`. Every worker shares the same settings, logins and sign-in state through files in the app folder. With gunicorn, `HOST`/`PORT` in `.env` are ignored; the `-b` option decides. One process is plenty for a screensaver (`python3 app.py` runs 8 threads), so more workers only add memory use.
 
